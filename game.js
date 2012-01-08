@@ -3,13 +3,25 @@ var lastBarHit = -1;
 var S = 16;
 var OFF_X = 64;
 var OFF_Y = 32;
-var BALL_W = 5;
-var BALL_H = 5;
-var SPEED = 5;
-
-function oneTwoPlayers() {
-}
-
+var BALL_W = 7;
+var BALL_H = 7;
+var SPEED = 4;
+var player1_walls = [
+    [1,3],
+    [1,5],
+    [1,7],
+    [2,4],
+    [2,6],
+    [3,5]
+];
+var player2_walls = [
+    [15,3],
+    [15,5],
+    [15,7],
+    [14,4],
+    [14,6],
+    [13,5]
+];
 
 function Vector(x, y){
   this.x = x;
@@ -24,7 +36,7 @@ function Vector(x, y){
     return new Vector(-1 * this.y, this.x);
   };
   this.subtract = function(v2) {
-    return this.add(v2.scalarMult(-1));//new Vector(this.x - v2.x, this.y - v2.y);
+    return this.add(v2.scalarMult(-1));
   };
   this.add = function(v2) {
       return new Vector(this.x + v2.x, this.y + v2.y);
@@ -215,67 +227,72 @@ function nextPlayer() {
     Crafty.trigger(String(currentPlayer) + 'moveorshoot?');
 }
 
+var spaceMap = {};
+
 function generateWorld() {
     var x,y,w,h;
 
     for (var i = 0; i < 11; i ++) {
         Crafty.e("2D, DOM, Color")
             .color('rgba(255,255,255,.2)')
-            .attr({ x: OFF_X, 
-                    y: OFF_Y + i * 2*S,
+            .attr({ x: OFF_X - .5, 
+                    y: OFF_Y + i * 2*S - .5,
                     w: 513, h: 1})
     }
     for (var i = 0; i < 17; i ++) {
         Crafty.e("2D, DOM, Color")
             .color('rgba(255,255,255,.2)')
-            .attr({ x: OFF_X + i * 2*S, 
-                    y: OFF_Y,
+            .attr({ x: OFF_X + i * 2*S - .5, 
+                    y: OFF_Y - .5,
                     w: 1, h: 320})
     }
 
 
-    for (var i = 0; i < 17; i ++) {
-        for (var j = 0; j < 11; j ++) {
+    var dot_w = 3;
+    var dot_h = 3;
+    for (var i = 1; i < 16; i ++) {
+        for (var j = 1; j < 10; j ++) {
             if (! (i % 2) != (j % 2)) {
-            Crafty.e("2D, DOM, Color, dot")
-                .color('grey')
-                .attr({ x: OFF_X + i * S*2 -1, 
-                        y: OFF_Y + j * S*2 -1,
-                        w: 3, h: 3})
-            }
+                Crafty.e("2D, DOM, Color, dot")
+                    .color('grey')
+                    .attr({ x: OFF_X + i * S*2 -dot_w/2 -.5, 
+                            y: OFF_Y + j * S*2 -dot_h/2 -.5,
+                            w: dot_w, h: dot_h})
+                    spaceMap[[i,j]] = 'available';
+                }
         }
     }
     w=3;
-    x=OFF_X+.5-w/2;
-    y=OFF_Y+2*S;
-    h=S*20-4*S;
+    x=OFF_X - w/2 - .5;
+    y=OFF_Y + S - .5;
+    h=S*20-2*S;
     Crafty.e("2D, DOM, Color, Collision, Persist, wall, solid, vertical")
         .color('yellow')
         .attr({x:x, y:y, w:w, h:h, orientation:'vertical'})
         .origin('center')
         .collision();
     w = 3;
-    x = OFF_X + S*32+.5-w/2;
-    y = OFF_Y + 2*S;
-    h = S*20-4*S
+    x = OFF_X + S*32-w/2 - .5;
+    y = OFF_Y + S - .5;
+    h = S*20-2*S
     Crafty.e("2D, DOM, Color, Collision, Persist, wall, solid, vertical")
         .color('red')
         .attr({x:x, y:y, w:w, h:h, orientation:'vertical'})
         .origin('center')
         .collision();
     h = 3;
-    x = OFF_X + 2*S;
-    y = OFF_Y+.5-h/2;
-    w = S*32-4*S;
+    x = OFF_X + S -.5;
+    y = OFF_Y - h/2 -.5;
+    w = S*32-2*S;
     Crafty.e("2D, DOM, Color, Collision, Persist, wall, solid, horizontal")
         .color('blue')
         .attr({x:x, y:y, w:w, h:h, orientation:'horizontal'})
         .origin('center')
         .collision();
     h = 3;
-    x = OFF_X + 2*S;
-    y = OFF_Y + S*20+.5-h/2;
-    w = S*32-4*S;
+    x = OFF_X + S - .5;
+    y = OFF_Y + S*20 - h/2 - .5;
+    w = S*32-2*S;
     Crafty.e("2D, DOM, Color, Collision, Persist, wall, solid, horizontal")
         .color('green')
         .attr({x:x, y:y, w:w, h:h, orientation:'horizontal'})
@@ -310,22 +327,16 @@ function generateWorld() {
         .attr({x:x, y:y, w:w, h:h, player:'2', rise: 'bottom'})
         .collision();
 
-    var player1_walls = [
-        [1,3],
-        [1,5],
-        [1,7],
-        [2,4],
-        [2,6],
-        [3,5]
-        ];
     var bar, horiz, vert, w, h, x, y;
     for (var index =0; index < player1_walls.length; index++) {
         horiz = player1_walls[index][0];
         vert = player1_walls[index][1];
+        spaceMap[[horiz,vert]] = '1';
+
         w = 3;
         h = S*3.5;
-        x = OFF_X + horiz * 2 * S +.5 - w/2;
-        y = OFF_Y + vert * 2 * S - h/2;
+        x = OFF_X + horiz * 2 * S -.5 - w/2;
+        y = OFF_Y + vert * 2 * S - h/2-.5;
 
         e = Crafty.e("2D, DOM, Persist, Color, bar, solid")
             .color('green')
@@ -335,21 +346,14 @@ function generateWorld() {
             e.rotation += 90;
     }
 
-    var player2_walls = [
-        [15,3],
-        [15,5],
-        [15,7],
-        [14,4],
-        [14,6],
-        [13,5]
-        ];
     for (var index =0; index < player2_walls.length; index++) {
         horiz = player2_walls[index][0];
         vert = player2_walls[index][1];
+        spaceMap[[horiz,vert]] = '2';
         w = 3;
         h = S*3.5;
-        x = OFF_X + horiz * 2 * S + .5 - w/2;
-        y = OFF_Y + vert * 2 * S - h/2;
+        x = OFF_X + horiz * 2 * S - .5 - w/2;
+        y = OFF_Y + vert * 2 * S - h/2 -.5;
 
         bar = Crafty.e("2D, DOM, Persist, Color, bar, solid")
             .color('blue')
@@ -413,8 +417,8 @@ window.onload = function () {
         doMenu("Player 2:<br/>(I) top or <br/>(M) bottom?", {'I': '2shoottop!', 'M': '2shootbottom!'})
     })
     Crafty.bind("1shoottop!", function() {
-        x = OFF_X + S - BALL_W/2;
-        y = OFF_Y + S - BALL_H/2;
+        x = OFF_X + S - BALL_W/2 - .5;
+        y = OFF_Y + S - BALL_H/2 - .5;
         gun = Crafty("p1t");
         gun.shooting = true;
         window.setTimeout(function() {
