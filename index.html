@@ -9,16 +9,42 @@
     #cr-stage { border:2px solid black; margin:5px auto; color:white }
     .wall {background: yellow;}
     .wall,.vertical {
-	    width: 10; 
-	    height: 320;
-	}
-	.ball {
-		border-radius: 4px;
-		background: red;
-	}
-	.bar {
-		border-radius: 3px;
-	}
+      width: 10; 
+      height: 320;
+  }
+@-moz-keyframes glow {
+    from { box-shadow: 0 0 5px #333; }
+    to   { box-shadow: 0 0 10px #046; }
+}
+@-webkit-keyframes glow {
+    from { -webkit-box-shadow: 0 0 5px #333; }
+    to   { -webkit-box-shadow: 0 0 10px #046; }
+}
+.Prompt {
+    background: darkorange;
+    border-radius: 7px;
+    color: black;
+    margin: 3em;
+    padding: 4em;
+    -moz-transition: opacity 1.5s ease;
+    -webkit-transition: opacity 1.5s ease;
+  }
+  .bar {
+    -moz-transition: all .5s ease;
+    -webkit-transition: all .5s ease;
+  }
+  .dot {
+    background: white;
+    width: 3px;
+    height: 3px;
+  }
+  .ball {
+    border-radius: 4px;
+    background: red;
+  }
+  .bar {
+    border-radius: 3px;
+  }
     </style>
 
 </head>

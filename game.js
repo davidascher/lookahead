@@ -5,6 +5,10 @@ var OFF_X = 64;
 var OFF_Y = 32;
 
 
+function oneTwoPlayers() {
+}
+
+
 function Vector(x, y){
   this.x = x;
   this.y = y;
@@ -63,11 +67,28 @@ function intersect(seg1, seg2, intersectionPoint) {
     }
 }
 
+intersectLineLine = function(a1, a2, b1, b2) {
+    var result;
+    
+    var ua_t = (b2.x - b1.x) * (a1.y - b1.y) - (b2.y - b1.y) * (a1.x - b1.x);
+    var ub_t = (a2.x - a1.x) * (a1.y - b1.y) - (a2.y - a1.y) * (a1.x - b1.x);
+    var u_b  = (b2.y - b1.y) * (a2.x - a1.x) - (b2.x - b1.x) * (a2.y - a1.y);
+
+    if ( u_b != 0 ) {
+        var ua = ua_t / u_b;
+        var ub = ub_t / u_b;
+
+        if ( 0 <= ua && ua <= 1 && 0 <= ub && ub <= 1 ) {
+            return {x: a1.x + ua * (a2.x - a1.x),
+                    y: a1.y + ua * (a2.y - a1.y)}
+        }
+    }
+};
 
 
 Crafty.c("Shooter", {   
-    _speed: 2,
-    _moving: false,
+    _speed: 5,
+    _moving: true,
     init: function() {
             this._movement= { x: 0, y: 0};
     },
@@ -98,48 +119,54 @@ Crafty.c("Shooter", {
             }
         })
         .bind("Moved", function(args) {
-            var motion, wall, left, right, top, bottom, leftend, rightend, before, after, o, walls;
+            var motion, p1, p2, left, right, top, bottom, leftend, rightend, before, after, o, walls;
 
             solids = Crafty("solid");
             for (var i = 0; i < solids.length; i++) {
                 solid = Crafty(solids[i]);
+                if (solid[0] == lastBarHit) continue;
                 o = {x: solid.x + solid.w/2, y: solid.y + solid.h/2};
-                left = o.x-solid.w/2;
-                right = o.x+solid.w/2;
-                top = o.y-solid.h/2;
-                bottom = o.y+solid.h/2;
+                if (solid.orientation == 'vertical' || ! solid.has('bar')) {
+                    left = o.x-solid.w/2;
+                    right = o.x+solid.w/2;
+                    top = o.y-solid.h/2;
+                    bottom = o.y+solid.h/2;
+                } else {
+                    left = o.x-solid.h/2;
+                    right = o.x+solid.h/2;
+                    top = o.y-solid.w/2;
+                    bottom = o.y+solid.w/2;
+                }
                 if (solid.orientation == 'horizontal') {
                     mode = 'horizontal';
-                    leftend = new Vector(left, o.y);
-                    rightend = new Vector(right, o.y);
-                    wall = new Segment(leftend, rightend);
+                    p1 = new Vector(left, o.y);
+                    p2 = new Vector(right, o.y);
                 } else {
                     mode = 'vertical';
-                    topend = new Vector(o.x, top);
-                    bottomend = new Vector(o.x, bottom);
-                    wall = new Segment(topend, bottomend);
+                    p1 = new Vector(o.x, top);
+                    p2 = new Vector(o.x, bottom);
                 }
                 before = new Vector(this.x-args.dx, this.y-args.dy)
                 after = new Vector(this.x, this.y);
-                motion = new Segment(before, after);
-                var intersectionPoint = new Vector(0, 0);
-                if (intersect(wall, motion, intersectionPoint) == INTERSECT) {
-                    this._x = intersectionPoint.x;
-                    this._y = intersectionPoint.y;
+                p = intersectLineLine(p1, p2, before, after)
+                if (p) {
+                    this._x = p.x;
+                    this._y = p.y;
+                    // console.log("moving to", p.x, p.y);
+                    // console.log('wall goes from ('+wall.p1.x+','+wall.p1.y+') to ('+wall.p2.x+','+wall.p2.y+')')
                     if (mode == 'horizontal') 
                         this._movement.y *= -1;
                     else 
                         this._movement.x *= -1;
                     if (solid.has('bar')) {
-                        lastBarHit = hit;
-                        x = solid;
-                        this.delay(function() {
-                            x.rotation += 90;
-                            if (x.orientation == 'horizontal')
-                                x.orientation = 'vertical';
-                            else
-                                x.orientation = 'horizontal'
-                        },200)
+                        lastBarHit = solid[0];
+                        console.log("Rotating", lastBarHit);
+                        solid.rotation += 90;
+                        console.log("rotation is now", solid.rotation)
+                        if (solid.orientation == 'horizontal')
+                            solid.orientation = 'vertical';
+                        else
+                            solid.orientation = 'horizontal'
                     }
                 }
             }        
@@ -160,8 +187,11 @@ function generateWorld() {
     for (var i = 0; i < 15; i ++) {
         for (var j = 0; j < 9; j ++) {
             if (! (i % 2) != (j % 2)) {
-            Crafty.e("2D, DOM, littledot")
-                .attr({ x: OFF_X + i * S*2 + S, y: OFF_Y + j * S*2  + S});
+            Crafty.e("2D, DOM, Color, dot")
+                .color('grey')
+                .attr({ x: OFF_X + i * S*2 + S, 
+                        y: OFF_Y + j * S*2 + S,
+                        w: 3, y: 3})
             }
         }
     }
@@ -169,7 +199,7 @@ function generateWorld() {
     y=OFF_Y+2*S;
     w=1;
     h=S*20-4*S;
-    Crafty.e("2D, DOM, Color, Collision, wall, solid, vertical")
+    Crafty.e("2D, DOM, Color, Collision, Persist, wall, solid, vertical")
         .color('yellow')
         .attr({x:x, y:y, w:w, h:h, orientation:'vertical'})
         .origin('center')
@@ -178,7 +208,7 @@ function generateWorld() {
     y = OFF_Y + 2*S;
     w = 1;
     h = S*20-4*S
-    Crafty.e("2D, DOM, Color, Collision, wall, solid, vertical")
+    Crafty.e("2D, DOM, Color, Collision, Persist, wall, solid, vertical")
         .color('yellow')
         .attr({x:x, y:y, w:w, h:h, orientation:'vertical'})
         .origin('center')
@@ -187,16 +217,16 @@ function generateWorld() {
     y = OFF_Y;
     w = S*32-4*S;
     h = 1;
-    Crafty.e("2D, DOM, Color, Collision, wall, solid, horizontal")
+    Crafty.e("2D, DOM, Color, Collision, Persist, wall, solid, horizontal")
         .color('yellow')
         .attr({x:x, y:y, w:w, h:h, orientation:'horizontal'})
         .origin('center')
         .collision();
     x = OFF_X + 2*S;
-    y = OFF_Y + S*20-2;
+    h = 3;
+    y = OFF_Y + S*20-h*3/2;
     w = S*32-4*S;
-    h = 1;
-    Crafty.e("2D, DOM, Color, Collision, wall, solid, horizontal")
+    Crafty.e("2D, DOM, Color, Collision, Persist, wall, solid, horizontal")
         .color('yellow')
         .attr({x:x, y:y, w:w, h:h, orientation:'horizontal'})
         .origin('center')
@@ -219,11 +249,12 @@ function generateWorld() {
         x = OFF_X + horiz * 2 * S - w/2;
         y = OFF_Y + vert * 2 * S - h/2;
 
-        Crafty.e("2D, DOM, Color, Collision, bar, solid, vertical")
+        e = Crafty.e("2D, DOM, Persist, Color, bar, solid")
             .color('green')
-            .attr({x: x, y: y, w: w, h: h, orientation: 'vertical'})
-            .collision()
-            .origin("center")
+            .attr({x: x, y: y, w: w, h: h, orientation: Math.random() > .5 ? 'vertical' : 'horizontal'})
+            .origin("center");
+        if (e.orientation == 'horizontal')
+            e.rotation += 90;
     }
 
     var player2_walls = [
@@ -242,61 +273,73 @@ function generateWorld() {
         x = OFF_X + horiz * 2 * S - w/2;
         y = OFF_Y + vert * 2 * S - h/2;
 
-        bar = Crafty.e("2D, DOM, Color, Collision, bar, solid, horizontal")
+        bar = Crafty.e("2D, DOM, Persist, Color, bar, solid")
             .color('blue')
-            .attr({x: x, y: y, w: w, h: h, orientation: 'horizontal'})
+            .attr({x: x, y: y, w: w, h: h, orientation: Math.random() > .5 ? 'vertical' : 'horizontal'})
             .origin("center");
-        bar.rotation += 90;
-        bar.collision();
+        if (bar.orientation == 'horizontal')
+            bar.rotation += 90;
     }
-
-    x = OFF_X + S;
-    y = OFF_Y + S;
-    w = 11;
-    h = 11;
-    ball = Crafty.e("2D, DOM, Collision, ball, Shooter, bounce")
-        .attr({x: x, y: y, w: w, h: h})
-        // .collision(new Crafty.polygon([x+w/2-1,y+h/2-1],[x+w/2+1,y+h/2-1],[x+w/2+1,y+h/2+1],[x+w/2-1,y+h/2+1]))
-        .origin("center")
-        .collision()
-        .shooter('BR');
 }
 
-Crafty.c("shoot", {
-    init:function() {
-        
-    },
-    shoot: function() {
-        return this;
-    },
-})
-
 window.onload = function () {
-    //start crafty
     Crafty.init(640, 400);
     Crafty.canvas.init();
+    Crafty.background("#000");
+    Crafty.bind("1or2?", function() {
+        menu = Crafty.e("2D, DOM, Text, Prompt").attr({ w: 100, h: 20, x: 150, y: 120 })
+                .css('opacity', '0')
+                .text("1 or 2 players?")
+                .css({ "text-align": "center" });
 
-    //the loading screen that will display while our assets load
-    Crafty.scene("loading", function () {
-        //load takes an array of assets and a callback when complete
-        Crafty.load(["tiles.png"], function () {
-            //turn the sprite map into usable components
-            Crafty.sprite(32, "tiles.png", {
-                littledot: [1, 0],
-            });
-            Crafty.scene("main"); //when everything is loaded, run the main scene
-        });
+        menu.bind("KeyDown", function(e) {
+            menu.destroy();
+            if (e.key == Crafty.keys['1']) {
+                Crafty.trigger("moveorshoot?");
+            } else if (e.key == Crafty.keys['2']) {
+                Crafty.trigger("moveorshoot?");
+            }
+        })
+    })
+    Crafty.bind("toporbottom?", function() {
+        menu = Crafty.e("2D, DOM, Text, Prompt").attr({ w: 100, h: 20, x: 150, y: 120 })
+                .css('opacity', '0')
+                .text("(T)op or (B)ottom?")
+                .css({ "text-align": "center" });
+        menu.bind("KeyDown", function(e) {
+            if (e.key == Crafty.keys.T) {
+                x = OFF_X + S;
+                y = OFF_Y + S;
+                w = 11;
+                h = 11;
+                menu.destroy();
+                ball = Crafty.e("2D, DOM, Persist, Collision, ball, Shooter, bounce")
+                    .attr({x: x, y: y, w: w, h: h})
+                    .origin("center")
+                    .collision()
+                    .shooter('BR');
+            } else if (e.key == Crafty.keys.B) {
 
-        //black background with some loading text
-        Crafty.background("#000");
-        Crafty.e("2D, DOM, Text").attr({ w: 300, h: 30, x: 150, y: 120 })
-        .text("Loading")
-        .css({ "text-align": "center" });
-        });   //automatically play the loading scene
-        Crafty.scene("loading");
+            }
+        })
+    });
+    Crafty.bind("moveorshoot?", function() {
+        menu = Crafty.e("2D, DOM, Text, Prompt").attr({ w: 100, h: 20, x: 150, y: 120 })
+                .css('opacity', '0')
+                .text("(M)ove or (S)hoot?")
+                .css({ "text-align": "center" });
 
-        Crafty.scene("main", function() {
-            generateWorld();
-        });
-    };
+        menu.bind("KeyDown", function(e) {
+            if (e.key == Crafty.keys.M) {
+                menu.destroy();
+                Crafty.trigger("direction?");
+            } else if (e.key == Crafty.keys.S) {
+                menu.destroy();
+                Crafty.trigger("toporbottom?");
+            }
+        })
+    })
+    generateWorld();
+    Crafty.trigger("1or2?");
+};
 
