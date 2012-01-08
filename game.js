@@ -5,7 +5,7 @@ var OFF_X = 64;
 var OFF_Y = 32;
 var BALL_W = 5;
 var BALL_H = 5;
-var SPEED = 3;
+var SPEED = 5;
 
 function oneTwoPlayers() {
 }
@@ -292,19 +292,19 @@ function generateWorld() {
         .attr({x:x, y:y, w:w, h:h, player:'1', rise: 'top'})
         .collision();
     x = OFF_X - w/2;
-    y = OFF_Y + S*19.5;
+    y = OFF_Y + S*20 - h/2;
     Crafty.e("2D, DOM, Color, Collision, gun, p1b")
         .color('brown')
         .attr({x:x, y:y, w:w, h:h, player:'1', rise: 'bottom'})
         .collision();
-    x = OFF_X + S*31.5;
-    y = OFF_Y - S/2;
+    x = OFF_X + S*32 - w/2;
+    y = OFF_Y - h/2;
     Crafty.e("2D, DOM, Color, Collision, gun, p2t")
         .color('brown')
         .attr({x:x, y:y, w:w, h:h, player:'2', rise: 'top'})
         .collision();
-    x = OFF_X + S*31.5;
-    y = OFF_Y + S*19.5;
+    x = OFF_X + S*32 - w/2;
+    y = OFF_Y + S*20 - h/2;
     Crafty.e("2D, DOM, Color, Collision, gun, p2b")
         .color('brown')
         .attr({x:x, y:y, w:w, h:h, player:'2', rise: 'bottom'})
@@ -413,10 +413,9 @@ window.onload = function () {
         doMenu("Player 2:<br/>(I) top or <br/>(M) bottom?", {'I': '2shoottop!', 'M': '2shootbottom!'})
     })
     Crafty.bind("1shoottop!", function() {
-        x = OFF_X + S;
-        y = OFF_Y + S-2;
+        x = OFF_X + S - BALL_W/2;
+        y = OFF_Y + S - BALL_H/2;
         gun = Crafty("p1t");
-        console.log(gun);
         gun.shooting = true;
         window.setTimeout(function() {
             gun.shooting = false;
@@ -428,8 +427,13 @@ window.onload = function () {
             .shooter('BR');
     });
     Crafty.bind("1shootbottom!", function() {
-        x = OFF_X + S;
-        y = OFF_Y + S*19;
+        x = OFF_X + S - BALL_W/2;
+        y = OFF_Y + S*19 - BALL_H/2;;
+        gun = Crafty("p1b");
+        gun.shooting = true;
+        window.setTimeout(function() {
+            gun.shooting = false;
+        }, 1000);
         ball = Crafty.e("2D, DOM, Persist, Collision, ball, Shooter, bounce")
             .attr({x: x, y: y, w: BALL_W, h: BALL_H})
             .origin("center")
@@ -437,8 +441,13 @@ window.onload = function () {
             .shooter('TR');
     });
     Crafty.bind("2shoottop!", function() {
-        x = OFF_X + S*31;
-        y = OFF_Y + S-2;
+        x = OFF_X + S*31 - BALL_W/2;
+        y = OFF_Y + S - BALL_H/2;;
+        gun = Crafty("p2t");
+        gun.shooting = true;
+        window.setTimeout(function() {
+            gun.shooting = false;
+        }, 1000);
         ball = Crafty.e("2D, DOM, Persist, Collision, ball, Shooter, bounce")
             .attr({x: x, y: y, w: BALL_W, h: BALL_H})
             .origin("center")
@@ -446,8 +455,13 @@ window.onload = function () {
             .shooter('BL');
     });
     Crafty.bind("2shootbottom!", function() {
-        x = OFF_X + S*31;
-        y = OFF_Y + S*19;
+        x = OFF_X + S*31 - BALL_W/2;
+        y = OFF_Y + S*19 - BALL_H/2;
+        gun = Crafty("p2b");
+        gun.shooting = true;
+        window.setTimeout(function() {
+            gun.shooting = false;
+        }, 1000);
         ball = Crafty.e("2D, DOM, Persist, Collision, ball, Shooter, bounce")
             .attr({x: x, y: y, w: BALL_W, h: BALL_H})
             .origin("center")
