@@ -3,7 +3,9 @@ var lastBarHit = -1;
 var S = 16;
 var OFF_X = 64;
 var OFF_Y = 32;
-
+var BALL_W = 5;
+var BALL_H = 5;
+var SPEED = 3;
 
 function oneTwoPlayers() {
 }
@@ -87,7 +89,7 @@ intersectLineLine = function(a1, a2, b1, b2) {
 
 
 Crafty.c("Shooter", {   
-    _speed: 5,
+    _speed: SPEED,
     _moving: true,
     init: function() {
             this._movement= { x: 0, y: 0};
@@ -126,6 +128,20 @@ Crafty.c("Shooter", {
         })
         .bind("Moved", function(args) {
             var motion, p1, p2, left, right, top, bottom, leftend, rightend, before, after, o, walls;
+
+            var hitgun = this.hit("gun");
+            if (hitgun.length) {
+                console.log(hitgun);
+                var c = hitgun[0].obj;
+                console.log(c);
+                if (! c.shooting) {
+                    c.css('background-color', 'grey !important');
+                    c.attr('disabled', true);
+                    this.destroy();
+                    this._moving = false;
+                    nextPlayer();
+                }
+            }
 
             solids = Crafty("solid");
             for (var i = 0; i < solids.length; i++) {
@@ -187,6 +203,17 @@ Crafty.c("Shooter", {
     },
 });
 
+var currentPlayer = 2;
+function nextPlayer() {
+    console.log('currentPlayer', currentPlayer);
+    if (currentPlayer == 1) {
+        currentPlayer = 2;
+    } else {
+        currentPlayer = 1;
+    }
+    console.log('currentPlayer', currentPlayer);
+    Crafty.trigger(String(currentPlayer) + 'moveorshoot?');
+}
 
 function generateWorld() {
     var x,y,w,h;
@@ -254,7 +281,35 @@ function generateWorld() {
         .attr({x:x, y:y, w:w, h:h, orientation:'horizontal'})
         .origin('center')
         .collision();
-       
+    
+    var gun1T, gun1B, gun2T, gun2B;
+    h = 32;
+    w = 32;
+    x = OFF_X - w/2;
+    y = OFF_Y - h/2;
+    Crafty.e("2D, DOM, Color, Collision, gun, p1t")
+        .color('brown')
+        .attr({x:x, y:y, w:w, h:h, player:'1', rise: 'top'})
+        .collision();
+    x = OFF_X - w/2;
+    y = OFF_Y + S*19.5;
+    Crafty.e("2D, DOM, Color, Collision, gun, p1b")
+        .color('brown')
+        .attr({x:x, y:y, w:w, h:h, player:'1', rise: 'bottom'})
+        .collision();
+    x = OFF_X + S*31.5;
+    y = OFF_Y - S/2;
+    Crafty.e("2D, DOM, Color, Collision, gun, p2t")
+        .color('brown')
+        .attr({x:x, y:y, w:w, h:h, player:'2', rise: 'top'})
+        .collision();
+    x = OFF_X + S*31.5;
+    y = OFF_Y + S*19.5;
+    Crafty.e("2D, DOM, Color, Collision, gun, p2b")
+        .color('brown')
+        .attr({x:x, y:y, w:w, h:h, player:'2', rise: 'bottom'})
+        .collision();
+
     var player1_walls = [
         [1,3],
         [1,5],
@@ -306,10 +361,10 @@ function generateWorld() {
 }
 
 function doMenu(message, triggermap) {
-    menu = Crafty.e("2D, DOM, Text, Prompt").attr({ w: 100, h: 20, x: 150, y: 60 })
+    menu = Crafty.e("2D, DOM, Text, Prompt").attr({ w: 200, h: 120, x: 150, y: 60 })
             .css('opacity', '0')
-            .text(message)
-            .css({ "text-align": "center"});
+            .text('<p>'+message+'</p>')
+            .css({ "text-align": "center", 'display': 'block'});
     var keycode, keycodemap = {};
     for (var key in triggermap) {
         keycode = Crafty.keys[key];
@@ -337,44 +392,69 @@ window.onload = function () {
     })
     Crafty.bind("KeyDown", function(e) {
         if (e.key == Crafty.keys.A) {
-            console.log("TRIGGERING");
             Crafty('bar').each(function() {
                 this.rotation += 45;
             })
         }
     })
     Crafty.bind("1or2?", function() {
-        doMenu("(1) or (2) players?", {'1': 'moveorshoot?', '2': 'moveroshoot?'})
+        doMenu("(1) or (2) players?", {'1': '1moveorshoot?', '2': '2moveorshoot?'})
     })
-    Crafty.bind("toporbottom?", function() {
-        doMenu("(T)op or (B)ottom?", {'T': 'shoottop!', 'B': 'shootbottom!'})
+    Crafty.bind("1moveorshoot?", function() {
+        doMenu("Player 1:<br/>(Q) move or <br/>(E) shoot?", {'Q': '1direction?', 'E': '1toporbottom?'})
     })
-    Crafty.bind("shoottop!", function() {
+    Crafty.bind("2moveorshoot?", function() {
+        doMenu("Player 2:<br/>(O) move or <br/>(P) shoot?", {'O': '2direction?', 'P': '2toporbottom?'})
+    })
+    Crafty.bind("1toporbottom?", function() {
+        doMenu("Player 1:<br/>(R) top or <br/>(C) bottom?", {'R': '1shoottop!', 'C': '1shootbottom!'})
+    })
+    Crafty.bind("2toporbottom?", function() {
+        doMenu("Player 2:<br/>(I) top or <br/>(M) bottom?", {'I': '2shoottop!', 'M': '2shootbottom!'})
+    })
+    Crafty.bind("1shoottop!", function() {
         x = OFF_X + S;
         y = OFF_Y + S-2;
-        w = 5;
-        h = 5;
+        gun = Crafty("p1t");
+        console.log(gun);
+        gun.shooting = true;
+        window.setTimeout(function() {
+            gun.shooting = false;
+        }, 1000);
         ball = Crafty.e("2D, DOM, Persist, Collision, ball, Shooter, bounce")
-            .attr({x: x, y: y, w: w, h: h})
-            // .origin("center")
-            // .collision()
-            .shooter('BR');
-    });
-    Crafty.bind("shootbottom!", function() {
-        x = OFF_X + S;
-        y = OFF_Y + S;
-        w = 11;
-        h = 11;
-        ball = Crafty.e("2D, DOM, Persist, Collision, ball, Shooter, bounce")
-            .attr({x: x, y: y, w: w, h: h})
+            .attr({x: x, y: y, w: BALL_W, h: BALL_H})
             .origin("center")
             .collision()
             .shooter('BR');
     });
-    Crafty.bind("moveorshoot?", function() {
-        doMenu("(M)ove or (S)hoot?", {'M': 'direction?', 'S': 'toporbottom?'})
-    })
+    Crafty.bind("1shootbottom!", function() {
+        x = OFF_X + S;
+        y = OFF_Y + S*19;
+        ball = Crafty.e("2D, DOM, Persist, Collision, ball, Shooter, bounce")
+            .attr({x: x, y: y, w: BALL_W, h: BALL_H})
+            .origin("center")
+            .collision()
+            .shooter('TR');
+    });
+    Crafty.bind("2shoottop!", function() {
+        x = OFF_X + S*31;
+        y = OFF_Y + S-2;
+        ball = Crafty.e("2D, DOM, Persist, Collision, ball, Shooter, bounce")
+            .attr({x: x, y: y, w: BALL_W, h: BALL_H})
+            .origin("center")
+            .collision()
+            .shooter('BL');
+    });
+    Crafty.bind("2shootbottom!", function() {
+        x = OFF_X + S*31;
+        y = OFF_Y + S*19;
+        ball = Crafty.e("2D, DOM, Persist, Collision, ball, Shooter, bounce")
+            .attr({x: x, y: y, w: BALL_W, h: BALL_H})
+            .origin("center")
+            .collision()
+            .shooter('TL');
+    });
     generateWorld();
-    Crafty.trigger("1or2?");
+    nextPlayer();
 };
 
