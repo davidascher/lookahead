@@ -481,7 +481,7 @@ function doMenu(message, triggermap) {
 
 window.onload = function () {
     Crafty.init(640, 400);
-    // Crafty.canvas.init();
+    Crafty.canvas.init();
     var bg = Crafty.background("#000");
     Crafty.bind('everybodyrotate', function() {
         Crafty('bar').each(function() {
