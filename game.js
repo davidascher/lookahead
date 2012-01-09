@@ -6,7 +6,7 @@ var OFF_Y = 32;
 var BALL_W = 7;
 var BALL_H = 7;
 var SPEED = 4;
-var player1_walls = [
+var player1_walls_initials = [
     [1,3],
     [1,5],
     [1,7],
@@ -14,7 +14,7 @@ var player1_walls = [
     [2,6],
     [3,5]
 ];
-var player2_walls = [
+var player2_walls_initials = [
     [15,3],
     [15,5],
     [15,7],
@@ -23,6 +23,7 @@ var player2_walls = [
     [13,5]
 ];
 
+var walls = {1: {}, 2: {}};
 /**@
 * #Collision
 * @category Collision
@@ -323,6 +324,13 @@ function nextPlayer() {
 
 var spaceMap = {};
 
+function ix(i) {
+    return i * S*2;
+}
+function iy(i) {
+    return i * S*2;
+}
+
 function generateWorld() {
     var x,y,w,h;
 
@@ -421,40 +429,35 @@ function generateWorld() {
         .attr({x:x, y:y, w:w, h:h, player:'2', rise: 'bottom'})
         .collision();
 
-    var bar, horiz, vert, w, h, x, y;
-    for (var index =0; index < player1_walls.length; index++) {
-        horiz = player1_walls[index][0];
-        vert = player1_walls[index][1];
-        spaceMap[[horiz,vert]] = '1';
-
+    function addWall(player, horiz, vert) {
         w = 3;
         h = S*3.5;
         x = OFF_X + horiz * 2 * S -.5 - w/2;
         y = OFF_Y + vert * 2 * S - h/2-.5;
 
         e = Crafty.e("2D, DOM, Persist, Color, bar, solid")
-            .color('green')
-            .attr({x: x, y: y, w: w, h: h, orientation: Math.random() > .5 ? 'vertical' : 'horizontal'})
+            .color(player == 1 ? 'green' : 'yellow')
+            .attr({x: x, y: y, w: w, h: h, 
+                   horiz: horiz,
+                   vert: vert,
+                   orientation: Math.random() > .5 ? 'vertical' : 'horizontal'})
             .origin("center");
         if (e.orientation == 'horizontal')
             e.rotation += 90;
+        walls[player][index] = e;
+        spaceMap[[horiz,vert]] = player;
     }
 
-    for (var index =0; index < player2_walls.length; index++) {
-        horiz = player2_walls[index][0];
-        vert = player2_walls[index][1];
-        spaceMap[[horiz,vert]] = '2';
-        w = 3;
-        h = S*3.5;
-        x = OFF_X + horiz * 2 * S - .5 - w/2;
-        y = OFF_Y + vert * 2 * S - h/2 -.5;
-
-        bar = Crafty.e("2D, DOM, Persist, Color, bar, solid")
-            .color('blue')
-            .attr({x: x, y: y, w: w, h: h, orientation: Math.random() > .5 ? 'vertical' : 'horizontal'})
-            .origin("center");
-        if (bar.orientation == 'horizontal')
-            bar.rotation += 90;
+    var bar, horiz, vert, w, h, x, y;
+    for (var index = 0; index < player1_walls_initials.length; index++) {
+        horiz = player1_walls_initials[index][0];
+        vert = player1_walls_initials[index][1];
+        addWall(1, horiz, vert);
+    }
+    for (var index = 0; index < player2_walls_initials.length; index++) {
+        horiz = player2_walls_initials[index][0];
+        vert = player2_walls_initials[index][1];
+        addWall(2, horiz, vert);
     }
 }
 
@@ -468,15 +471,137 @@ function doMenu(message, triggermap) {
         keycode = Crafty.keys[key];
         keycodemap[keycode] = triggermap[key];
     }
-    console.log(keycodemap);
 
     menu.bind("KeyDown", function(e) {
+        var trigger;
         if (keycodemap[e.key] != undefined) {
             menu.destroy();
-            console.log(keycodemap[e.key])
-            Crafty.trigger(keycodemap[e.key]);
+            trigger = keycodemap[e.key];
+            if (typeof(trigger) == typeof('')) {
+                Crafty.trigger(trigger);
+            } else {
+                trigger(e.key);
+            }
         }
     })
+}
+
+effectMove = function(player, wall, shortcut, dx, dy) {
+    console.log('effectMove', dx, dy);
+    var horiz, vert;
+    horiz = wall.attr('horiz');
+    vert = wall.attr('vert');
+    console.log("BEFORE, horiz: ", horiz, "vert", vert);
+    wall.shift(ix(dx), iy(dy));
+    shortcut.shift(ix(dx), iy(dy));
+    var newhoriz, newvert;
+    newhoriz = horiz + dx;
+    newvert = vert + dy;
+    spaceMap[[horiz,vert]] = 'available';
+    spaceMap[[newhoriz,newvert]] = player;
+    wall.attr('horiz', newhoriz);
+    wall.attr('vert', newvert);
+    wall.attr('moved', true);
+    console.log("ÅFTER, horiz: ", newhoriz, "vert", newvert);
+}
+
+moveNumberedBar = function(player, wall, shortcut, direction) {
+    var delta = parseDirection(direction);
+    var dx = delta.dx;
+    var dy = delta.dy;
+    console.log("moveNumberedBar", player, wall, direction, dx, dy)
+    effectMove(player, wall, shortcut, dx, dy);
+    selectBarsForMove(player, direction);
+}
+
+parseDirection = function(direction) {
+    switch (direction) {
+        case 'left': return {dx: -2, dy: 0};
+        case 'right': return {dx: 2, dy: 0};
+        case 'up': return {dx: 0, dy: -2};
+        case 'down': return {dx: 0, dy: 2}
+    }
+    
+}
+isWallMoveable = function(wall, direction) {
+    if (wall.attr('moved')) return false; // already moved once.
+    var horiz, vert, x, y, moveable;
+    horiz = wall.attr('horiz');
+    vert = wall.attr('vert');
+    x = wall.x + wall.w / 2;
+    y = wall.y + wall.h / 2;
+    moveable = (spaceMap[[horiz + dx, vert + dy]] == 'available');
+    return moveable;
+}
+
+selectBarsForMove = function(player, direction) {
+    var wall, player_walls = walls[player];
+    var i, horiz, vert;
+    var moveable_walls = [];
+    var shortcut, x, y;
+    var shortcut_w = 20;
+    var shortcut_h = 20;
+    var padding = 6; 
+    var moveable;
+    var delta = parseDirection(direction);
+    dx = delta.dx;
+    dy = delta.dy;
+    for (i = 0; i < 6; i++) {
+        wall = player_walls[i];
+        vert = wall.attr('vert');
+        x = wall.x + wall.w / 2;
+        y = wall.y + wall.h / 2;
+        moveable = isWallMoveable(wall, direction);
+        keyIndex = "key"+String(i)
+        Crafty(keyIndex).each(function() {
+            console.log("UPPPDATING, ", this, " moveable = ", moveable, this.has('Disabled'))
+            if (moveable) {
+                this.removeComponent('Disabled');
+            } else {
+                this.addComponent('Disabled');
+            }
+        });
+        shortcut = Crafty(keyIndex);
+        if (shortcut.length == 0) {
+            console.log("CREATING A NEW SHORTCUT");
+            s = "2D, DOM, Text, Shortcut, " + keyIndex + (moveable ? '' : ', Disabled');
+            shortcut = Crafty.e(s).attr({ w: shortcut_w, h: shortcut_h, 
+                                          x: x - shortcut_w/2-padding,
+                                          y: y - shortcut_h/2-padding,
+                                          shortcut: i,
+                                          wall: wall,
+                                          player: player,
+                                          direction: direction})
+                        .css({opacity: 0, padding: padding + 'px'})
+                        .text(String(i))
+                        .css({ "text-align": "center", 'display': 'block'});
+        }
+
+        shortcut.bind("KeyDown", function(e) {
+            if (e.key == Crafty.keys[String(this.attr('shortcut'))]) {
+                if (! this.has('Disabled'))
+                    moveNumberedBar(this.attr('player'), this.wall, this, this.attr('direction'));
+            }
+        });
+        if (moveable) {
+            moveable_walls.push(wall);
+        }
+    }
+    for (i = 0; i < moveable_walls.length; i++) {
+        wall = moveable_walls[i];
+    };
+
+    // DEBUGGING
+    // for (i = 0; i < moveable_walls.length; i++) {
+    //     console.log("MOVING", i, deltax, deltay)
+    //     effectMove(player, moveable_walls[i], deltax, deltay)
+    // }
+    // Crafty.trigger('1direction?');
+
+    // highlight each moveable wall, and give it a key 1-6
+
+    // bind a keydown for 1-6.  on keydown, effect the move, and mark it as 'moved'
+
 }
 
 window.onload = function () {
@@ -489,7 +614,7 @@ window.onload = function () {
         })
     })
     Crafty.bind("KeyDown", function(e) {
-        if (e.key == Crafty.keys.A) {
+        if (e.key == Crafty.keys.Z) {
             Crafty('bar').each(function() {
                 this.rotation += 45;
             })
@@ -516,6 +641,12 @@ window.onload = function () {
     })
     Crafty.bind("2moveorshoot?", function() {
         doMenu("Player 2:<br/>(O) move or <br/>(P) shoot?", {'O': '2direction?', 'P': '2toporbottom?'})
+    })
+    Crafty.bind("1direction?", function(key) {
+        doMenu("WASD", {'W': function() { selectBarsForMove(1, 'up', key)},
+                        'A': function() { selectBarsForMove(1, 'left', key)},
+                        'S': function() { selectBarsForMove(1, 'down', key)},
+                        'D': function() { selectBarsForMove(1, 'right', key)}});
     })
     Crafty.bind("1toporbottom?", function() {
         doMenu("Player 1:<br/>(R) top or <br/>(C) bottom?", {'R': '1shoottop!', 'C': '1shootbottom!'})

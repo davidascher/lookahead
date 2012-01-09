@@ -12,36 +12,43 @@
     .wall,.vertical {
       width: 10; 
       height: 320;
-  }
-  .Prompt {
-    background: darkorange;
-    border-radius: 7px;
-    color: black;
-    margin: 3em;
-    padding: 1em;
-    -moz-transition: opacity 1.5s ease;
-    -webkit-transition: opacity 1.5s ease;
-  }
-  .bar {
-    -moz-transition: all .5s ease;
-    -webkit-transition: all .5s ease;
-  }
-  .dot {
-    background: white;
-    width: 3px;
-    height: 3px;
-  }
-  .ball {
-    border-radius: 6px;
-    background: red;
-  }
-  .bar {
-    border-radius: 3px;
-  }
+    }
+    .Shortcut {
+      border-radius: 3px;
+      background: rgba(200,100,230,.1);
+    }
+    .Disabled {
+      color: grey;
+    }
+    .Prompt {
+      background: darkorange;
+      border-radius: 7px;
+      color: black;
+      margin: 3em;
+      padding: 1em;
+      -moz-transition: opacity 1.5s ease;
+      -webkit-transition: opacity 1.5s ease;
+    }
+    .bar, .Shortcut {
+      -moz-transition: all .5s ease;
+      -webkit-transition: all .5s ease;
+    }
+    .dot {
+      background: white;
+      width: 3px;
+      height: 3px;
+    }
+    .ball {
+      border-radius: 6px;
+      background: red;
+    }
+    .bar {
+      border-radius: 3px;
+    }
     </style>
 
 </head>
 <body>
-<p style="padding: 2em; color: white; font-size: smaller">Debugging shortcuts: hit 'A' to cause the rods to rotate;  hit 'T' to add a bounding box to whatever ball is live</p>
+<p style="padding: 2em; color: white; font-size: smaller">Debugging shortcuts: hit 'Z' to cause the rods to rotate;  hit 'T' to add a bounding box to whatever ball is live</p>
 </body>
 </html>
