@@ -3,11 +3,11 @@ TODO
 === p1
 
 * implement move:
-  - keyboard UI first
-  - figure out logic of what moves are possible
+  - keyboard UI first // finish player 2 side, and figure out player turn issues
+* determine end-of-game test, offer to restart
+* figure out edge-case guards until hitbox issues are resolved, so the ball can never escape the playground.
 * disable disabled guns
 * add bullet count to each gun
-* determine end-of-game test, offer to restart
 * figure out hitbox drift issues
 
 

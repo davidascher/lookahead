@@ -219,7 +219,6 @@ Crafty.c("Shooter", {
                 this._moving = ! this._moving;
             }
             if (e.key == Crafty.keys.A) {
-                console.log("TRIGGERING");
                 Crafty('bar').each(function() {
                     this.rotation += 10;
                 })
@@ -238,9 +237,7 @@ Crafty.c("Shooter", {
 
             var hitgun = this.hit("gun");
             if (hitgun.length) {
-                console.log(hitgun);
                 var c = hitgun[0].obj;
-                console.log(c);
                 if (! c.shooting) {
                     c.css('background-color', 'grey !important');
                     c.attr('disabled', true);
@@ -281,17 +278,13 @@ Crafty.c("Shooter", {
                 if (p) {
                     this._x = p.x;
                     this._y = p.y;
-                    console.log("moving to", p.x, p.y);
-                    console.log('wall goes from ('+p1.x+','+p1.y+') to ('+p2.x+','+p2.y+')')
                     if (mode == 'horizontal') 
                         this._movement.y *= -1;
                     else 
                         this._movement.x *= -1;
                     if (solid.has('bar')) {
                         lastBarHit = solid[0];
-                        console.log("Rotating", lastBarHit);
                         solid.rotation += 90;
-                        console.log("rotation is now", solid.rotation)
                         if (solid.orientation == 'horizontal')
                             solid.orientation = 'vertical';
                         else
@@ -312,13 +305,12 @@ Crafty.c("Shooter", {
 
 var currentPlayer = 2;
 function nextPlayer() {
-    console.log('currentPlayer', currentPlayer);
+    console.log("currentPlayer = ", currentPlayer);
     if (currentPlayer == 1) {
         currentPlayer = 2;
     } else {
         currentPlayer = 1;
     }
-    console.log('currentPlayer', currentPlayer);
     Crafty.trigger(String(currentPlayer) + 'moveorshoot?');
 }
 
@@ -487,11 +479,9 @@ function doMenu(message, triggermap) {
 }
 
 effectMove = function(player, wall, shortcut, dx, dy) {
-    console.log('effectMove', dx, dy);
     var horiz, vert;
     horiz = wall.attr('horiz');
     vert = wall.attr('vert');
-    console.log("BEFORE, horiz: ", horiz, "vert", vert);
     wall.shift(ix(dx), iy(dy));
     shortcut.shift(ix(dx), iy(dy));
     var newhoriz, newvert;
@@ -502,14 +492,12 @@ effectMove = function(player, wall, shortcut, dx, dy) {
     wall.attr('horiz', newhoriz);
     wall.attr('vert', newvert);
     wall.attr('moved', true);
-    console.log("ÅFTER, horiz: ", newhoriz, "vert", newvert);
 }
 
 moveNumberedBar = function(player, wall, shortcut, direction) {
     var delta = parseDirection(direction);
     var dx = delta.dx;
     var dy = delta.dy;
-    console.log("moveNumberedBar", player, wall, direction, dx, dy)
     effectMove(player, wall, shortcut, dx, dy);
     selectBarsForMove(player, direction);
 }
@@ -530,9 +518,19 @@ isWallMoveable = function(wall, direction) {
     vert = wall.attr('vert');
     x = wall.x + wall.w / 2;
     y = wall.y + wall.h / 2;
-    moveable = (spaceMap[[horiz + dx, vert + dy]] == 'available');
-    return moveable;
+    return (spaceMap[[horiz + dx, vert + dy]] == 'available');
 }
+
+var endOfMoveTurn = function(e) {
+    if (e.key == 191) { // which should be DIVIDE, but isn'
+        console.log('we caughta a /');
+        console.log(e);
+        Crafty.unbind("KeyDown", endOfMoveTurn)
+        Crafty('Shortcut').each(function() { this.destroy(); })
+        window.setTimeout(function() { nextPlayer() }, 500);
+        // nextPlayer();
+    }
+};
 
 selectBarsForMove = function(player, direction) {
     var wall, player_walls = walls[player];
@@ -553,18 +551,8 @@ selectBarsForMove = function(player, direction) {
         y = wall.y + wall.h / 2;
         moveable = isWallMoveable(wall, direction);
         keyIndex = "key"+String(i)
-        Crafty(keyIndex).each(function() {
-            console.log("UPPPDATING, ", this, " moveable = ", moveable, this.has('Disabled'))
-            if (moveable) {
-                this.removeComponent('Disabled');
-            } else {
-                this.addComponent('Disabled');
-            }
-        });
-        shortcut = Crafty(keyIndex);
-        if (shortcut.length == 0) {
-            console.log("CREATING A NEW SHORTCUT");
-            s = "2D, DOM, Text, Shortcut, " + keyIndex + (moveable ? '' : ', Disabled');
+        if (! Crafty(keyIndex).length) {
+            s = "2D, DOM, Text, Shortcut, " + keyIndex;
             shortcut = Crafty.e(s).attr({ w: shortcut_w, h: shortcut_h, 
                                           x: x - shortcut_w/2-padding,
                                           y: y - shortcut_h/2-padding,
@@ -575,21 +563,22 @@ selectBarsForMove = function(player, direction) {
                         .css({opacity: 0, padding: padding + 'px'})
                         .text(String(i))
                         .css({ "text-align": "center", 'display': 'block'});
+            shortcut.bind("KeyDown", function(e) {
+                if (e.key == Crafty.keys[String(this.attr('shortcut'))]) {
+                    if (! this.has('Disabled'))
+                        moveNumberedBar(this.attr('player'), this.wall, this, this.attr('direction'));
+                }
+            });
         }
-
-        shortcut.bind("KeyDown", function(e) {
-            if (e.key == Crafty.keys[String(this.attr('shortcut'))]) {
-                if (! this.has('Disabled'))
-                    moveNumberedBar(this.attr('player'), this.wall, this, this.attr('direction'));
+        Crafty(keyIndex).each(function() {
+            if (moveable) {
+                this.removeComponent('Disabled');
+            } else {
+                this.addComponent('Disabled');
             }
         });
-        if (moveable) {
-            moveable_walls.push(wall);
-        }
     }
-    for (i = 0; i < moveable_walls.length; i++) {
-        wall = moveable_walls[i];
-    };
+    Crafty('key0').bind("KeyDown", endOfMoveTurn); // XXX I would have thought Crafty.bind() would work, but it double-fires keydown events?
 
     // DEBUGGING
     // for (i = 0; i < moveable_walls.length; i++) {
@@ -621,7 +610,6 @@ window.onload = function () {
         }
         if (e.key == Crafty.keys.T) {
             Crafty('ball').each(function() {
-                console.log(this.attr('wired'));
                 if (this.attr('wired')) {
                     this.removeComponent('WiredHitBox');
                     this.attr('wired', false);
@@ -647,6 +635,12 @@ window.onload = function () {
                         'A': function() { selectBarsForMove(1, 'left', key)},
                         'S': function() { selectBarsForMove(1, 'down', key)},
                         'D': function() { selectBarsForMove(1, 'right', key)}});
+    })
+    Crafty.bind("2direction?", function(key) {
+        doMenu("UpDownLeftRight", {'UP_ARROW': function() { selectBarsForMove(2, 'up', key)},
+                        'LEFT_ARROW': function() { selectBarsForMove(2, 'left', key)},
+                        'DOWN_ARROW': function() { selectBarsForMove(2, 'down', key)},
+                        'RIGHT_ARROW': function() { selectBarsForMove(2, 'right', key)}});
     })
     Crafty.bind("1toporbottom?", function() {
         doMenu("Player 1:<br/>(R) top or <br/>(C) bottom?", {'R': '1shoottop!', 'C': '1shootbottom!'})
