@@ -3,8 +3,9 @@ var lastBarHit = -1;
 var S = 16;
 var OFF_X = 64;
 var OFF_Y = 32;
-var BALL_W = 7;
-var BALL_H = 7;
+var BALL_W = 9;
+var BALL_H = 9;
+var BAR_W = 9;
 var SPEED = 4;
 var player1_walls_initials = [
     [1,3],
@@ -276,8 +277,9 @@ Crafty.c("Shooter", {
                 after = new Vector(this.x, this.y);
                 p = intersectLineLine(p1, p2, before, after)
                 if (p) {
-                    this._x = p.x;
-                    this._y = p.y;
+                    var dx = p.x - this._x;
+                    var dy = p.y - this._y;
+                    this.shift(dx, dy);
                     if (mode == 'horizontal') 
                         this._movement.y *= -1;
                     else 
@@ -422,7 +424,7 @@ function generateWorld() {
         .collision();
 
     function addWall(player, horiz, vert) {
-        w = 3;
+        w = BAR_W;
         h = S*3.5;
         x = OFF_X + horiz * 2 * S -.5 - w/2;
         y = OFF_Y + vert * 2 * S - h/2-.5;
@@ -649,8 +651,8 @@ window.onload = function () {
         doMenu("Player 2:<br/>(I) top or <br/>(M) bottom?", {'I': '2shoottop!', 'M': '2shootbottom!'})
     })
     Crafty.bind("1shoottop!", function() {
-        x = OFF_X + S - BALL_W/2 - .5;
-        y = OFF_Y + S - BALL_H/2 - .5;
+        x = OFF_X + S +S - BALL_W/2 - .5;
+        y = OFF_Y + S + S - BALL_H/2 - .5;
         gun = Crafty("p1t");
         gun.shooting = true;
         window.setTimeout(function() {
@@ -663,8 +665,8 @@ window.onload = function () {
             .shooter('BR');
     });
     Crafty.bind("1shootbottom!", function() {
-        x = OFF_X + S - BALL_W/2;
-        y = OFF_Y + S*19 - BALL_H/2;;
+        x = OFF_X + 2*S - BALL_W/2;
+        y = OFF_Y + S*18 - BALL_H/2;;
         gun = Crafty("p1b");
         gun.shooting = true;
         window.setTimeout(function() {
@@ -677,8 +679,8 @@ window.onload = function () {
             .shooter('TR');
     });
     Crafty.bind("2shoottop!", function() {
-        x = OFF_X + S*31 - BALL_W/2;
-        y = OFF_Y + S - BALL_H/2;;
+        x = OFF_X + S*30 - BALL_W/2;
+        y = OFF_Y + 2*S - BALL_H/2;;
         gun = Crafty("p2t");
         gun.shooting = true;
         window.setTimeout(function() {
